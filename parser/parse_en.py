@@ -50,10 +50,6 @@ class EnParser(GeneralParser):
                 elif level == 3:
                     pos = self.get_heading_text(element)
                     additional_pos = ''
-                    if 'Etymology' in pos:
-                        self.page_state.append((headword_lang, pos, additional_pos, head, '', 1))
-                    else:
-                        pos = pos
                 elif level == 4:
                     pos = self.get_heading_text(element)                
                     additional_pos = ''
@@ -64,7 +60,9 @@ class EnParser(GeneralParser):
 
                 if element.name == 'p':
                     if pos == 'Pronunciation':
-                        self.page_state.append((headword_lang, pos, additional_pos, head, element, 2))
+                        self.page_state.append((headword_lang, pos, additional_pos, head, element))
+                    elif 'Etymology' in pos:
+                        self.page_state.append((headword_lang, pos, additional_pos, head, element))
                     else:
                         if pos in speech_list:
                             string = self.remove_tag(element)
@@ -86,17 +84,13 @@ class EnParser(GeneralParser):
 
     def csv_writer(self):
         with open('wiktionary_en_parse.csv', 'w') as csvfile:
-            fieldnames = ['headword_lang', 'head', 'pos', 'additional_pos', 'trans', 'original_html']
+            fieldnames = ['headword_lang', 'head', 'pos', 'additional_pos', 'trans(no paren)', 'trans(with paren)', 'original_html']
             writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
             writer.writeheader()
             for content in self.page_state:
                 s = str(content[4])
                 translation = self.remove_tag(s)
-                #parsing again translation, which does not have html tag anymore (remove parenthesis)
-                if content[5] == 1:
-                    output = re.sub(r'\([^)]*\)', '', translation)
-                else:
-                    output = translation
+                output = self.remove_parenthesis(translation)
                 #eliminate long explanation (but not final yet, still has some bugs)
                 # if '.' in output:
                 #     output = output[0 : output.index('.')]
@@ -114,7 +108,7 @@ class EnParser(GeneralParser):
                         output = output[3:]
                 if content[1] != 'See also':
                     writer.writerow({'headword_lang' : content[0], 'head' : content[3], 'pos' : content[1], 'additional_pos' : content[2],
-                      'trans' : output, 'original_html' : s})
+                      'trans(no paren)' : output, 'trans(with paren)' : translation, 'original_html' : s})
 
     def parse_ol(self, headword_lang, pos, additional_pos, head, element):
         for li in element:
@@ -124,7 +118,7 @@ class EnParser(GeneralParser):
                 # trans = ''
                 # if len(all_soup) > 0:
                 #     trans = all_soup
-                self.page_state.append((headword_lang, pos, additional_pos, head, li, 1))
+                self.page_state.append((headword_lang, pos, additional_pos, head, li))
 
     def parse_ul(self, headword_lang, pos, additional_pos, head, element):
         if pos != 'Anagrams' and pos != 'Descendants':
@@ -133,7 +127,10 @@ class EnParser(GeneralParser):
                 if li != '\n':
                     tag_list.append(li)
             tag = ', '.join(str(x) for x in tag_list)
-            self.page_state.append((headword_lang, pos, additional_pos, head, tag, 2))
+            self.page_state.append((headword_lang, pos, additional_pos, head, tag))
 
     def remove_tag(self, string):
         return re.sub('<[^>]+>', '', str(string))
+
+    def remove_parenthesis(self, string):
+        return re.sub(r'\([^)]*\)', '', string)
