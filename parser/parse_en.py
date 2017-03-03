@@ -4,17 +4,16 @@ from bs4 import Tag, BeautifulSoup
 from parser.general import GeneralParser
 from parser.helper import get_html_tree_from_url
 import re
+import sys
 import csv
 
 class EnParser(GeneralParser):
-    tested_url = [
-        "https://en.wiktionary.org/wiki/canto",
-    ]
 
     def __init__(self):
         super(EnParser, self).__init__()
         self.edition = 'en'
         self.page_state = []
+        self.count = 0
 
     # override the parent class method
 
@@ -39,51 +38,59 @@ class EnParser(GeneralParser):
         headword_lang = ''
         pos = ''
         additional_pos = ''
+        #only words that are starting with 'A'
+        if re.match("^[S]",page_heading):
+        #     self.count += 1
+        #     print (self.count)
         # if page_heading.startswith('A'):
-        for element in page_content.children:
-            if isinstance(element, Tag):
-                level = self.get_heading_level(element.name)
-                if level == 2:
-                    headword_lang = self.get_heading_text(element)
-                    head = page_heading
-                    additional_pos = ''
-                elif level == 3:
-                    pos = self.get_heading_text(element)
-                    additional_pos = ''
-                elif level == 4:
-                    pos = self.get_heading_text(element)                
-                    additional_pos = ''
+            for element in page_content.children:
+                if self.count == 20:
+                    break;
+                if isinstance(element, Tag):
+                    level = self.get_heading_level(element.name)
+                    if level == 2:
+                        headword_lang = self.get_heading_text(element)
+                        head = page_heading
+                        additional_pos = ''
+                    elif level == 3:
+                        pos = self.get_heading_text(element)
+                        additional_pos = ''
+                    elif level == 4:
+                        pos = self.get_heading_text(element)                
+                        additional_pos = ''
 
-                if level == 5:
-                    additional_pos = ''
-                    pos = self.get_heading_text(element)
+                    if level == 5:
+                        additional_pos = ''
+                        pos = self.get_heading_text(element)
 
-                if element.name == 'p':
-                    if pos == 'Pronunciation':
-                        self.page_state.append((headword_lang, pos, additional_pos, head, element))
-                    elif 'Etymology' in pos:
-                        self.page_state.append((headword_lang, pos, additional_pos, head, element))
-                    else:
-                        if pos in speech_list:
-                            string = self.remove_tag(element)
-                            additional_pos = string[len(head):]
+                    if element.name == 'p':
+                        if pos == 'Pronunciation':
+                            self.page_state.append((headword_lang, pos, additional_pos, head, element))
+                        elif 'Etymology' in pos:
+                            self.page_state.append((headword_lang, pos, additional_pos, head, element))
+                        else:
+                            if pos in speech_list:
+                                string = self.remove_tag(element)
+                                additional_pos = string[len(head):]
 
-                if element.name == 'ol':
-                    if head:
-                        if pos:
-                            self.parse_ol(headword_lang, pos, additional_pos, head, element)
-                if element.name == 'ul':
-                    if head:
-                        if pos:
-                            self.parse_ul(headword_lang, pos, additional_pos, head, element)
-                                  
+                    if element.name == 'ol':
+                        if head:
+                            if pos:
+                                self.parse_ol(headword_lang, pos, additional_pos, head, element)
+                    if element.name == 'ul':
+                        if head:
+                            if pos:
+                                self.parse_ul(headword_lang, pos, additional_pos, head, element)                          
         # parsing without parenthesis
-        self.csv_writer()
+        
+        if re.match("^[U]",page_heading):
+            self.csv_writer()
+            sys.exit()
 
 
 
     def csv_writer(self):
-        with open('wiktionary_en_parse.csv', 'w') as csvfile:
+        with open('wiktionary_en_parse_S-T.csv', 'w') as csvfile:
             fieldnames = ['headword_lang', 'head', 'pos', 'additional_pos', 'trans(no paren)', 'trans(with paren)', 'original_html']
             writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
             writer.writeheader()
