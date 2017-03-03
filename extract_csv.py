@@ -40,6 +40,7 @@ class National_Parse():
 
 def main():
 	csv_parser = National_Parse('path_text.txt')
+	print('done')
 
 if __name__ == '__main__':
 	main()
