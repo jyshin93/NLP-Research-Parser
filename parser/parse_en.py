@@ -14,6 +14,7 @@ class EnParser(GeneralParser):
         self.edition = 'en'
         self.page_state = []
         self.count = 0
+        self.previous_head = ""
 
     # override the parent class method
 
@@ -39,7 +40,7 @@ class EnParser(GeneralParser):
         pos = ''
         additional_pos = ''
         #only words that are starting with 'A'
-        if re.match("^[S]",page_heading):
+        if re.match("^[Z]",page_heading):
         #     self.count += 1
         #     print (self.count)
         # if page_heading.startswith('A'):
@@ -83,14 +84,15 @@ class EnParser(GeneralParser):
                                 self.parse_ul(headword_lang, pos, additional_pos, head, element)                          
         # parsing without parenthesis
         
-        if re.match("^[U]",page_heading):
+        if re.match("^[a]",page_heading):
             self.csv_writer()
             sys.exit()
+        # self.previous_head = page_heading
 
 
 
     def csv_writer(self):
-        with open('wiktionary_en_parse_S-T.csv', 'w') as csvfile:
+        with open('wiktionary_en_parse_a.csv', 'w') as csvfile:
             fieldnames = ['headword_lang', 'head', 'pos', 'additional_pos', 'trans(no paren)', 'trans(with paren)', 'original_html']
             writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
             writer.writeheader()
